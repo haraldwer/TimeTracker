@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TimeTracker.CategoryWidget">
+    <Border
+        StrokeThickness="0"
+        BackgroundColor="#DD000000">
+        <Border.StrokeShape>
+            <RoundRectangle CornerRadius="20"/>
+        </Border.StrokeShape>
+        <Grid>
+            <Grid
+                Padding="20, 10"
+                ColumnDefinitions="1*,130">
+                <VerticalStackLayout
+                    Grid.Column="0">
+                    <Label 
+                        x:Name="lbl_Name"
+                        FontSize="Medium"
+                        Text="Category Name"/>
+                    <HorizontalStackLayout
+                        Spacing="10">
+                        <Label
+                            x:Name="lbl_TotalTime"
+                            Text="Total: 13:37"/>
+                        <Label
+                            x:Name="lbl_WeeklyTime"
+                            Text="Weekly Avg: 12:34"/>
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+                <Label
+                    Grid.Column="1"
+                    HorizontalOptions="Fill"
+                    HorizontalTextAlignment="End"
+                    x:Name="lbl_SessionTime"
+                    FontSize="50"
+                    Margin="-10"
+                    Text="12:23"/>
+            </Grid>
+            <Button
+                Opacity="0.0"
+                Clicked="Button_Clicked"/>
+        </Grid>
+    </Border>
+</ContentView>
