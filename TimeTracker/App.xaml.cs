@@ -1,6 +1,4 @@
-﻿using H.NotifyIcon;
-using Microsoft.Maui.Controls;
-
+﻿
 namespace TimeTracker
 {
     public partial class App : Application
@@ -11,6 +9,8 @@ namespace TimeTracker
         {
             InitializeComponent();
             MainPage = new AppShell();
+            if (Current != null)
+                Current.UserAppTheme = AppTheme.Dark;
         }
 
         protected override Window CreateWindow(IActivationState? activationState)
@@ -26,17 +26,27 @@ namespace TimeTracker
             Timer.IsRepeating = true;
             Timer.Tick += (a, e) =>
             {
-                State.Get().Update(); 
+                var s = State.Get();
+                if (s != null)
+                    s.Update(); 
             };
             Timer.Start();
-            State.Get().Update();
 
             window.Destroying += (a, e) =>
             {
                 Timer.Stop();
                 var s = State.Get();
+                if (s == null)
+                    return;
                 s.EndAllSessions();
-                s.Save();
+                bool finished = false;
+                Task.Run(async () =>
+                {
+                    await s.Save();
+                    finished = true;
+                });
+                while (!finished)
+                    Thread.Sleep(200);
             };
 
             return window;

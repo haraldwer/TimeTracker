@@ -1,6 +1,5 @@
 ﻿
-using Microsoft.Maui.Platform;
-using Newtonsoft.Json;
+using CommunityToolkit.Maui.Alerts;
 using System.Diagnostics;
 
 namespace TimeTracker
@@ -21,58 +20,40 @@ namespace TimeTracker
 
     public class State
     {
+        public List<Category> Categories = new();
+
         private static State? Instance = null;
 
-        public static State Get()
+        public static State? Get()
         {
-            Instance ??= Load();
-            Instance ??= new State();
             return Instance;
         }
 
-        static string GetPath()
+        static string GetFilePath() => Path.Combine(FileSystem.CacheDirectory, "TrackedTime.json");
+        static string GetCloudPath() => "/Harald/Dev/TrackedTime.json";
+
+        public static async Task<bool> Load()
         {
-            return Path.Combine(FileSystem.CacheDirectory, "state.json");
+            State? file = JsonUtility.ReadJson<State>(GetFilePath());
+            State? cloud = await JsonUtility.DownloadJson<State>(GetCloudPath());
+            if (cloud != null)
+                Toast.Make("Cloud data downloaded successfully!");
+            file ??= new();
+            cloud ??= new();
+            file.EndAllSessions();
+            cloud.EndAllSessions();
+            Instance = Merge(file, cloud);
+            await Instance.Save();
+            return true;
         }
 
-        public static State Load()
+        public async Task Save()
         {
-            try
-            {
-                string? json = SecureStorage.Default.GetAsync("state").Result;
-                if (json == null)
-                    if (File.Exists(GetPath()))
-                        json = File.ReadAllText(GetPath());
-                if (json == null) return new();
-                var obj = JsonConvert.DeserializeObject<State>(json);
-                if (obj == null) return new();
-                obj.EndAllSessions();
-                return obj;
-            }
-            catch (Exception ex)
-            {
-                Trace.WriteLine(ex.ToString());
-                return new();
-            }
+            if (!JsonUtility.WriteJson(this, GetFilePath()))
+                Trace.WriteLine("File save failed");
+            if (!await JsonUtility.UploadJson(this, GetCloudPath()))
+                Trace.WriteLine("Cloud save failed");
         }
-
-        public void Save()
-        {
-            try
-            {
-                string json = JsonConvert.SerializeObject(this, Formatting.Indented);
-                SecureStorage.Default.SetAsync("state", json).Wait(1000);
-                if (!Directory.Exists(GetPath()))
-                    Directory.CreateDirectory(GetPath());
-                File.WriteAllText(GetPath(), json);
-            }
-            catch (Exception ex)
-            {
-                Trace.WriteLine(ex.ToString());
-            }
-        }
-
-        public List<Category> Categories = new();
 
         public void Update()
         {
@@ -100,6 +81,7 @@ namespace TimeTracker
                 }
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
+                    // Should be thread safe!
                     foreach (var c in Categories)
                     {
                         bool isActive = false;
@@ -156,19 +138,90 @@ namespace TimeTracker
                     c.ActiveSession.End = DateTime.Now;
                     c.Sessions.Add(c.ActiveSession);
                     c.ActiveSession = null;
+                    c.Sessions = MergeSessions(c.Sessions);
                 }
             }
         }
 
         public static string GetTimeString(TimeSpan InSpan)
         {
-            if (InSpan.Hours > 0)
-                return InSpan.ToFormattedString("hh:mm");
-            if (InSpan.Minutes > 0)
-                return "00" + InSpan.ToFormattedString(":mm");
+            if (InSpan.TotalHours >= 10)
+                return Convert.ToInt32(InSpan.TotalHours) + "h";
+            if (InSpan.TotalMinutes > 0)
+            {
+                string min = Convert.ToString(InSpan.Minutes);
+                if (InSpan.Minutes < 10)
+                    min = "0" + min;
+                return Convert.ToInt32(InSpan.TotalHours) + ":" + min;
+            }
             if (InSpan.Seconds > 0)
-                return InSpan.Seconds + " sec";
+                return Convert.ToInt32(InSpan.TotalSeconds) + " s";
             return "";
+        }
+
+        public static State Merge(State InA, State InB)
+        {
+            foreach (var cB in InB.Categories)
+            {
+                var matchesA = InA.Categories.Where((cA) => cA.Name == cB.Name);
+                foreach (var cA in matchesA)
+                {
+                    cA.ProcessNames = cA.ProcessNames.Union(cB.ProcessNames).ToList();
+                    cA.Sessions.AddRange(cB.Sessions);
+                }
+
+                if (matchesA.Count() == 0)
+                    InA.Categories.Add(cB);
+            }
+
+            foreach (var cA in InA.Categories)
+                cA.Sessions = MergeSessions(cA.Sessions);
+
+            return InA;
+        }
+
+        private static List<Session> MergeSessions(List<Session> InSessions)
+        {
+            InSessions.Sort((first, second) => first.Start.CompareTo(second.Start));
+
+            bool cond = true;
+            while (cond)
+            {
+                cond = false; 
+                for (int i = 0; i < InSessions.Count - 1; i++)
+                {
+                    Session session = InSessions[i];
+                    Session nextSession = InSessions[i + 1];
+
+                    if (IsOverlap(session, nextSession))
+                    {
+                        // Replace A with merge
+                        InSessions[i] = MergeSessions(session, nextSession);
+                        // Consume B
+                        InSessions.RemoveAt(i + 1);
+                        cond = true;
+                    }
+                }
+            }
+            return InSessions;
+        }
+
+        private static bool IsOverlap(Session InFirst, Session InSecond)
+        {
+            DateTime maxStart = InFirst.Start > InSecond.Start ? InFirst.Start : InSecond.Start;
+            DateTime minEnd = InFirst.End < InSecond.End ? InFirst.End : InSecond.End;
+            return minEnd >= maxStart;
+        }
+
+        private static Session MergeSessions(Session InFirst, Session InSecond)
+        {
+            //Trace.WriteLine("Merging sessions: ");
+            //Trace.WriteLine(InFirst.Start.ToString() + " - " + InFirst.End.ToString());
+            //Trace.WriteLine(InSecond.Start.ToString() + " - " + InSecond.End.ToString());
+            return new() { 
+                Start = InFirst.Start < InSecond.Start ? InFirst.Start : InSecond.Start, 
+                End = InFirst.End > InSecond.End ? InFirst.End : InSecond.End
+            };
         }
     }
 }

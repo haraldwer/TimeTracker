@@ -22,7 +22,22 @@
             </FlyoutBase.ContextFlyout>
         </tb:TaskbarIcon>
 
+        <ActivityIndicator
+            x:Name="ld_Loading"
+            IsVisible="True"
+            IsRunning="True"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"/>
+
+        <Label
+            x:Name="lbl_Error"
+            Text="Failed to load state"
+            IsVisible="false"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"/>
+
         <ScrollView
+            x:Name="scrl_Main"
             VerticalOptions="Center">
             <VerticalStackLayout
                 Margin="40"
@@ -40,5 +55,16 @@
                     HorizontalOptions="Center"/>
             </VerticalStackLayout>
         </ScrollView>
+
+        <ImageButton
+            Source="arrow_down.png"
+            CornerRadius="100"
+            HorizontalOptions="End"
+            VerticalOptions="Start"
+            HeightRequest="20"
+            WidthRequest="20"
+            Margin="10"
+            Padding="5,4,5,0"
+            Clicked="ImageButton_Clicked"/>
     </Grid>
 </ContentPage>

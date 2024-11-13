@@ -121,6 +121,9 @@ public partial class CategoryPage : ContentPage
         }
 
         var s = State.Get();
+        if (s == null)
+            return;
+
         s.Categories.RemoveAll((c) => c.Name == Category.Name);
         s.Categories.Add(Category);
         s.Save();

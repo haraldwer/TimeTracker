@@ -59,4 +59,14 @@ public partial class ProcessWidget : ContentView
     {
         OnClicked(this, Process, lbl_Name.Text);
     }
+
+    private void PointerGestureRecognizer_PointerEntered(object sender, PointerEventArgs e)
+    {
+        this.ScaleTo(0.98, 100);
+    }
+
+    private void PointerGestureRecognizer_PointerExited(object sender, PointerEventArgs e)
+    {
+        this.ScaleTo(1.0, 100);
+    }
 }

@@ -14,6 +14,7 @@ public partial class CategoryWidget : ContentView
 		Category = InCategory;
 
         Loaded += CategoryWidget_Loaded;
+        Unloaded += CategoryWidget_Unloaded;
 	}
 
     private void CategoryWidget_Loaded(object? sender, EventArgs e)
@@ -31,6 +32,12 @@ public partial class CategoryWidget : ContentView
         Timer.Start();
 
 		Tick(); 
+    }
+
+    private void CategoryWidget_Unloaded(object? sender, EventArgs e)
+    {
+        if (Timer != null && Timer.IsRunning)
+            Timer.Stop();
     }
 
     private void Timer_Tick(object? sender, EventArgs e)
@@ -100,5 +107,15 @@ public partial class CategoryWidget : ContentView
     private void Button_Clicked(object sender, EventArgs e)
     {
         Navigation.PushAsync(new CategoryPage(Category));
+    }
+
+    private void PointerGestureRecognizer_PointerEntered(object sender, PointerEventArgs e)
+    {
+        this.ScaleTo(0.98, 100);
+    }
+
+    private void PointerGestureRecognizer_PointerExited(object sender, PointerEventArgs e)
+    {
+        this.ScaleTo(1.0, 100);
     }
 }

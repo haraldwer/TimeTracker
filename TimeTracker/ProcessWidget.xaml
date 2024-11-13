@@ -11,6 +11,11 @@
         <Border.StrokeShape>
             <RoundRectangle CornerRadius="20"/>
         </Border.StrokeShape>
+        <Border.GestureRecognizers>
+            <PointerGestureRecognizer 
+                PointerEntered="PointerGestureRecognizer_PointerEntered"
+                PointerExited="PointerGestureRecognizer_PointerExited"/>
+        </Border.GestureRecognizers>
         <Grid>
             <Grid
                 Margin="20,10"
